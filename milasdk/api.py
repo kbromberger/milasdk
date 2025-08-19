@@ -34,9 +34,45 @@ class MilaApi:
         self._transport = AuthenticatedAIOHTTPTransport(API_BASE_URL, session)
         self._client = self._setup_client()
 
+    @classmethod
+    async def create_async(cls, session: AbstractAsyncSession) -> "MilaApi":
+        """Create MilaApi instance with async schema loading for Home Assistant compatibility"""
+        instance = cls.__new__(cls)
+        instance._session = session
+        instance._transport = AuthenticatedAIOHTTPTransport(API_BASE_URL, session)
+        instance._client = await instance.async_setup_client()
+        return instance
+
     def _setup_client(self) -> Client:
-        with open(Path(__file__).parent / './gql/mila_schema.gql') as f:
+        schema_path = Path(__file__).parent / './gql/mila_schema.gql'
+        # Read schema synchronously for now - will be made async in async_setup_client
+        with open(schema_path) as f:
             schema_str = f.read()
+
+        c = Client(
+            schema=schema_str,
+            transport=self._transport, 
+            serialize_variables=True, 
+            parse_results=True
+        )
+
+        register_enums(c)
+        register_scalers(c)
+
+        return c
+    
+    async def async_setup_client(self) -> Client:
+        """Async version of _setup_client for use in async environments like Home Assistant"""
+        try:
+            import aiofiles
+            schema_path = Path(__file__).parent / './gql/mila_schema.gql'
+            async with aiofiles.open(schema_path) as f:
+                schema_str = await f.read()
+        except ImportError:
+            # Fallback to sync version if aiofiles not available
+            schema_path = Path(__file__).parent / './gql/mila_schema.gql'
+            with open(schema_path) as f:
+                schema_str = f.read()
 
         c = Client(
             schema=schema_str,
