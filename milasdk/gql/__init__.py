@@ -1,5 +1,5 @@
 from gql import Client
-from gql.utils import update_schema_enum, update_schema_scalar
+from gql.utilities import update_schema_enum, update_schema_scalar
 
 from .enums import *
 from .queries import *

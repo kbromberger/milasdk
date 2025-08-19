@@ -9,7 +9,7 @@ from graphql import DocumentNode, ExecutionResult, print_ast
 from multidict import CIMultiDictProxy
 
 from gql.transport import AsyncTransport
-from gql.utils.files import extract_files
+from gql.utilities.files import extract_files
 from gql.transport.exceptions import (
     TransportClosed,
     TransportProtocolError,
