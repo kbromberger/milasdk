@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from graphql import DocumentNode, ExecutionResult
-from gql import Client
+from gql import Client, GraphQLRequest
 from gql.dsl import *
 from gql.transport.exceptions import (
     TransportQueryError,
@@ -55,11 +55,12 @@ class MilaApi:
         retry = 3
         authError = 0
         response: ExecutionResult = None
+        request = GraphQLRequest(document, variable_values=variable_values)
         async with self._client as session:
             while retry:
                 retry -= 1
                 try:
-                    return await session.execute(document, variable_values)
+                    return await session.execute(request)
                 except TransportServerError as ex:
                     if ex.code == 429:    # Too Many Requests
                         wait_time = response.headers.get('Retry-After', API_DEFAULT_429_WAIT)

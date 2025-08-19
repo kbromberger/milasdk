@@ -1,7 +1,7 @@
 import io
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, Optional, Tuple, Type
+from typing import Any, AsyncGenerator, Dict, Optional, Tuple, Type, TYPE_CHECKING
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -9,12 +9,15 @@ from graphql import DocumentNode, ExecutionResult, print_ast
 from multidict import CIMultiDictProxy
 
 from gql.transport import AsyncTransport
-from gql.utilities.files import extract_files
+from gql.transport.file_upload import extract_files
 from gql.transport.exceptions import (
     TransportClosed,
     TransportProtocolError,
     TransportServerError,
 )
+
+if TYPE_CHECKING:
+    from gql import GraphQLRequest
 
 from ..auth import AbstractAsyncSession
 
@@ -70,13 +73,12 @@ class AuthenticatedAIOHTTPTransport(AsyncTransport):
 
     async def execute(
         self,
-        document: DocumentNode,
-        variable_values: Optional[Dict[str, Any]] = None,
-        operation_name: Optional[str] = None,
-        extra_args: Dict[str, Any] = None,
+        request: "GraphQLRequest",
+        *,
+        extra_args: Optional[Dict[str, Any]] = None,
         upload_files: bool = False,
     ) -> ExecutionResult:
-        """Execute the provided document AST against the configured remote server
+        """Execute the provided GraphQL request against the configured remote server
         using the current session.
         This uses the aiohttp library to perform a HTTP POST request asynchronously
         to the remote server.
@@ -84,13 +86,15 @@ class AuthenticatedAIOHTTPTransport(AsyncTransport):
         Don't call this coroutine directly on the transport, instead use
         :code:`execute` on a client or a session.
 
-        :param document: the parsed GraphQL request
-        :param variable_values: An optional Dict of variable values
-        :param operation_name: An optional Operation name for the request
+        :param request: the GraphQL request containing document and variables
         :param extra_args: additional arguments to send to the aiohttp post method
         :param upload_files: Set to True if you want to put files in the variable values
         :returns: an ExecutionResult object.
         """
+
+        document = request.document
+        variable_values = request.variable_values
+        operation_name = request.operation_name
 
         query_str = print_ast(document)
 
